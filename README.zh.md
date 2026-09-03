@@ -1,5 +1,9 @@
 # dsh-single-terminal
 
+<p align="center">
+  <img src="assets/preview/1.png" alt="dsh-single-terminal 预览" width="800" />
+</p>
+
 **dsh-single-terminal** 是 DeepSeek Harness（DSH）宿主的真实终端抽屉插件。它在
 Web 应用底部挂一条交互式 PTY 终端（xterm.js）——可以正常敲命令、Ctrl-C、拖拽
 改大小、开任意多个标签。
@@ -21,6 +25,10 @@ Web 应用底部挂一条交互式 PTY 终端（xterm.js）——可以正常敲
 - **双语 UI** —— 跟随宿主界面语言（中文 / English）；`Alt+C` 开关抽屉
 
 [English](README.md)
+
+## 预览
+
+终端抽屉截图（暗色主题跟随、浮层磨砂模式）：见 [preview.md](preview.md)。
 
 ## 功能
 
@@ -89,6 +97,31 @@ dsh --profile web                 # 启动（宿主半边需重启后生效）
 > `pnpm install` 时需要 C/C++ 工具链编译。浏览器半边完整内联 xterm.js，
 > 无运行时依赖。
 
+## 发布
+
+构建工具链为 **tsc + tsdown**（无 vite）：`tsc -b` 负责类型检查并产出声明文件，
+`tsdown`（Rolldown 内核）打包宿主半（`lib/index.js`，ESM）与浏览器半
+（`lib/client.js`，单文件 CJS `__ModuleLoader__` 工厂，自动 banner 包裹）。
+依赖管理使用 **pnpm 10**（`pnpm-lock.yaml` 入库，CI 按 `--frozen-lockfile`
+安装）。构建产物随 git 提交，git 安装无需本地构建：
+
+```sh
+pnpm install     # 按 pnpm-lock.yaml 安装
+pnpm run build   # 清空 lib → tsc -b（声明）→ tsdown（双半产物）
+pnpm run verify  # 模拟宿主模块表检查 lib/client.js（可选）
+pnpm run release # check + build + verify + npm version patch + 推送 tag（触发发布工作流）
+```
+
+### 自动发布（GitHub Actions）
+
+推送 `v*` tag（`pnpm run release` 会自动 bump 补丁版本、重建并打 tag 推送）会
+触发 [`.github/workflows/publish.yml`](.github/workflows/publish.yml)——单个
+`release` job：Setup Node 26 → `pnpm install --frozen-lockfile` →
+`pnpm run check` → `pnpm run build` → `pnpm run verify` → `pnpm pack` →
+创建 GitHub Release（自动生成 changelog，附带 tarball）→ 经 **Trusted
+Publishing**（OIDC `--provenance`，无需 `NPM_TOKEN` secret）发布到 npm
+（需先在 npmjs.com 把该包的本仓库配置为 Trusted Publisher）。
+
 ## 开发
 
 环境要求：**Node ≥ 22.19（或 ≥ 24）+ pnpm 10**（`packageManager` 固定 pnpm 版本）。
@@ -102,14 +135,22 @@ pnpm run verify        # 模拟宿主 seed 表检查 lib/client.js 可加载
 ```
 
 ```
-├── src/host/           # 宿主半边：index.ts（入口，ws 路由 + 配置）、hub.ts（会话 Hub + 帧协议）、shells.ts（注册表 + 探测）、types.ts
-├── src/client/         # 浏览器半边：plugin.tsx（slots）、drawer.tsx、term.tsx、controller.ts、ws.ts、styles.ts、i18n.ts ...
-├── lib/index.js        # 宿主半边产物（tsdown，ESM）
-├── lib/client.js       # 浏览器半边产物（tsdown → __ModuleLoader__ 工厂，xterm 已内联）
-├── scripts/verify-client.mjs    # 宿主 seed 表模拟检查
-├── scripts/gen-xterm-css.mjs    # 从 @xterm/xterm 包重新生成 src/client/xterm-css.ts
+├── src/                # 源码
+│   ├── host/           # 宿主半边：index.ts（入口，ws 路由 + 配置）、hub.ts（会话 Hub + 帧协议）、shells.ts（注册表 + 探测）、types.ts
+│   └── client/         # 浏览器半边：plugin.tsx（slots）、drawer.tsx、term.tsx、controller.ts、ws.ts、styles.ts、theme.ts、toggle.tsx、i18n.ts ...
+├── lib/                # 构建产物（入库：git 安装无需本地构建）
+│   ├── index.js        # 宿主半边（tsdown，ESM）
+│   ├── client.js       # 浏览器半边（tsdown → __ModuleLoader__ 工厂，xterm 已内联）
+│   └── types/          # 类型声明（tsc -b 生成）
+├── assets/preview/     # README / preview.md 引用的截图
+├── scripts/            # verify-client.mjs（宿主 seed 表模拟检查）、gen-xterm-css.mjs（重新生成 src/client/xterm-css.ts）
+├── tsdown.config.ts    # tsdown 构建配置（node 半 + client bundle banner 包裹）
+├── tsconfig.json       # solution：引用 tsconfig.host.json / tsconfig.client.json
 ├── cordis.patch.yml    # Bundle patch：按包名引用的插件行（无路径）
-└── package.json        # dsh.bundle + dsh.client(web) manifests + peerDependencies
+├── package.json        # dsh.bundle + dsh.client(web) manifests + peerDependencies
+├── README.md           # 英文文档
+├── README.zh.md        # 本文件（中文）
+└── preview.md          # 截图预览（引用 assets/preview/*.png）
 ```
 
 ## 实现说明

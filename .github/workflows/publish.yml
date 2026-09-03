@@ -1,0 +1,75 @@
+# 发布工作流：推送 v* tag 时触发（pnpm run release 会自动 bump 并推送 tag）
+# - release job：安装依赖（pnpm frozen-lockfile）+ 类型检查（tsc -b）+ 构建（tsc -b && tsdown）
+#   + bundle 校验 → 打包并直接创建 GitHub Release（非草稿，附 tarball）→ 通过 OIDC Trusted Publishing 发布至 npm
+#
+# 历史排障记录（勿删）：dsh-jenkins 同款工作流的 release job 曾一直挂在 Setup Node 步骤，
+# 报错 "Unable to locate executable file: pnpm"。先后尝试过 npm install -g、
+# pnpm/action-setup、npx 调用 pnpm 均无效——真正的根因是 setup-node@v5 的
+# package-manager-cache 自动缓存：该选项默认开启，会读取 package.json 的
+# packageManager 字段（pnpm@10.33.0），随后执行 `pnpm store path` 定位缓存目录；
+# 而 Setup Node 步骤执行时 pnpm 尚未安装（node 26 不再捆绑 corepack），因此失败。
+# 修复：在 Setup Node 步骤显式设置 package-manager-cache: false，关闭自动缓存。
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # 用于创建 GitHub Release
+      id-token: write   # 必须！用于通过 OIDC 与 npm 进行身份安全验证
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          # 关闭 package-manager-cache 自动缓存（v5 默认开启）：它会把 package.json
+          # 的 packageManager 字段识别为 pnpm 并执行 `pnpm store path`，而本步骤
+          # 执行时 pnpm 尚未安装（node 26 不捆绑 corepack），导致
+          # "Unable to locate executable file: pnpm"。pnpm 由后续步骤经 npx 临时
+          # 调用，无需 setup-node 做缓存恢复。
+          package-manager-cache: false
+
+      - name: Install dependencies
+        # 用 npx 直接调用 pnpm（node 自带 npm，npx 一定可用）：pnpm 临时下载
+        # 执行，不依赖 corepack（node 25+ 已移除）或任何第三方 action。版本固定为
+        # 与 package.json 的 packageManager 字段一致（升级 pnpm 时需同步更新）。
+        # frozen-lockfile 严格按 pnpm-lock.yaml 安装，pnpm 完整记录 peer 解析，
+        # 无 npm arborist 崩溃（edgesOut）与 lock 校验问题。
+        run: npx --yes pnpm@10.33.0 install --frozen-lockfile
+
+      - name: Type check
+        run: npx --yes pnpm@10.33.0 run check
+
+      - name: Build
+        run: npx --yes pnpm@10.33.0 run build
+
+      - name: Verify bundle
+        run: npx --yes pnpm@10.33.0 run verify
+
+      - name: Pack tarball
+        run: npx --yes pnpm@10.33.0 pack
+
+      - name: Create GitHub Release (published, not draft)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --generate-notes \
+            --verify-tag \
+            *.tgz
+
+      - name: Publish to npm via Trusted Publishing
+        # 使用原生 npm 进行发布。需要先在 npmjs.com 的包设置里把本仓库配置为
+        # Trusted Publisher（或手动授予 provenance 权限）。--provenance 会将发布
+        # 行为绑定到当前 GitHub Actions 的工作流凭证上；--no-git-checks 避免
+        # npm publish 检查工作区干净程度（上游步骤有构建产物生成）。
+        run: npm publish --provenance --no-git-checks
