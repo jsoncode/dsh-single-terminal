@@ -1,6 +1,6 @@
 {
   "name": "dsh-single-terminal",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "jsoncode",
   "license": "MIT",
   "description": "Interactive terminal drawer plugin (dual-face): bottom drawer with real PTY terminals (xterm.js), multi-tab, Windows shell picker (PowerShell default / pwsh / CMD / Git Bash / WSL + custom), docked (occupies page height) or overlay mode, keep-alive sessions with reconnect replay. Bilingual UI (zh/en)",
