@@ -17,8 +17,9 @@ as you need.
   from config; POSIX: `$SHELL` / bash / zsh / fish
 - **Two drawer modes** — *Docked* pushes the page content up (no occlusion),
   *Overlay* floats above it; drag the top edge to resize, the drawer remembers
-  mode and height. Overlay is a frosted-glass layer (translucent background +
-  `backdrop-filter` blur); Docked is opaque. Open/close slides with the host's
+  mode and height. Both modes share the same frosted-glass style (translucent
+  background + `backdrop-filter` blur) — the mode only decides docking
+  behavior. Open/close slides with the host's
   easing curve and honors `prefers-reduced-motion`.
 - **Theme following** — the drawer and the terminal palette follow the host's
   theme (light / dark / custom themes) live; no separate theme config.
@@ -37,8 +38,8 @@ as you need.
 
 ## Preview
 
-Screenshot of the terminal drawer (dark theme following, frosted-glass overlay
-mode): see [preview.md](preview.md).
+Screenshot of the terminal drawer (dark theme following, frosted-glass style):
+see [preview.md](preview.md).
 
 ## Features
 
@@ -201,13 +202,13 @@ pnpm run verify        # simulate the host seed table to check lib/client.js loa
   `body[data-ds-dark-theme]`), so light / dark / custom themes apply without
   plugin-side logic. The xterm palette is computed at runtime: alias token
   values are read via a hidden probe element (`getComputedStyle`), the
-  background is re-composed with the overlay alpha, and a `MutationObserver`
+  background is re-composed with the frosted alpha, and a `MutationObserver`
   on the body attribute re-applies the palette — theme switches (including
   custom themes projected by the host's ThemePresenter) update live.
 - **Renderer strategy**: xterm 5 ships DOM renderer only by default
-  (`allowTransparency` works there, and WebGL canvases are opaque), so Overlay
-  mode stays on the DOM renderer with a translucent terminal background under
-  the frosted blur, while Docked mode loads the WebGL addon for GPU rendering;
-  switching modes swaps the renderer at runtime.
+  (`allowTransparency` works there, while WebGL canvases are opaque). Both
+  modes share the frosted style, so the plugin stays on the DOM renderer with
+  a translucent terminal background under the frosted blur in every mode —
+  the WebGL addon was removed rather than swapped at runtime.
 - **The official `deepseek-harness` project is not modified**; all UI sits in
   existing slots (`shell.overlay`, `conversation.session.header.utilities`).

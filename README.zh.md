@@ -13,9 +13,9 @@ Web 应用底部挂一条交互式 PTY 终端（xterm.js）——可以正常敲
 - **Shell 选择** —— Windows：PowerShell（默认）/ pwsh 7 / CMD / Git Bash / WSL
   （未安装的自动隐藏）+ config 自定义 shell；POSIX：`$SHELL` / bash / zsh / fish
 - **两种抽屉模式** —— *占高度* 把页面内容顶起（无遮挡），*浮层* 悬浮于内容之上；
-  顶边可拖拽调高度，模式与高度自动记忆。浮层为磨砂玻璃层（半透明背景 +
-  `backdrop-filter` 高斯模糊），占高度为不透明。开合带滑入滑出动画
-  （沿用宿主缓动曲线，尊重系统减动效设置）。
+  顶边可拖拽调高度，模式与高度自动记忆。两种模式共用同一磨砂玻璃样式
+  （半透明背景 + `backdrop-filter` 高斯模糊）——模式只决定停靠行为。开合带
+  滑入滑出动画（沿用宿主缓动曲线，尊重系统减动效设置）。
 - **主题跟随** —— 抽屉与终端配色实时跟随宿主主题（浅色 / 深色 / 自定义主题），
   无需单独配置。
 - **会话保活** —— 终端在页面刷新、抽屉开合后继续存活；重连后从环形缓冲回放
@@ -28,7 +28,7 @@ Web 应用底部挂一条交互式 PTY 终端（xterm.js）——可以正常敲
 
 ## 预览
 
-终端抽屉截图（暗色主题跟随、浮层磨砂模式）：见 [preview.md](preview.md)。
+终端抽屉截图（暗色主题跟随、磨砂玻璃样式）：见 [preview.md](preview.md)。
 
 ## 功能
 
@@ -176,12 +176,11 @@ pnpm run verify        # 模拟宿主 seed 表检查 lib/client.js 可加载
 - **主题跟随**：插件 CSS 全部消费宿主语义 alias token（`--dsw-alias-*`，定义在
   `body` 上，随 `body[data-ds-dark-theme]` 翻转），浅色 / 深色 / 自定义主题
   无需插件侧逻辑即可生效。xterm 调色板在运行时现算：经隐藏探针元素读取
-  alias token 的 computed 值，按浮层 alpha 重组背景色，并用 `MutationObserver`
+  alias token 的 computed 值，按磨砂 alpha 重组背景色，并用 `MutationObserver`
   监听 body 属性重新套用——主题切换（含宿主 ThemePresenter 投影的自定义主题）
   实时生效。
 - **渲染器策略**：xterm 5 默认仅有 DOM 渲染器（`allowTransparency` 在此有效，
-  WebGL canvas 不支持 alpha），因此浮层模式保持 DOM 渲染器 + 半透明终端背景
-  置于磨砂模糊之上，占高度模式加载 WebGL 插件做 GPU 渲染；模式切换在运行时
-  换入 / 换出渲染器。
+  WebGL canvas 不支持 alpha）。两种模式共用磨砂样式，因此统一保持 DOM 渲染器 +
+  半透明终端背景置于磨砂模糊之上——不做运行时渲染器切换，WebGL 插件已移除。
 - **不修改官方 `deepseek-harness` 项目**；全部 UI 落在既有插槽
   （`shell.overlay`、`conversation.session.header.utilities`）。

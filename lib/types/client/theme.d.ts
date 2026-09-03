@@ -9,5 +9,5 @@
  */
 import type { ITheme } from '@xterm/xterm';
 export declare function useDark(): boolean;
-export declare function xtermTheme(dark: boolean, overlay: boolean): ITheme;
+export declare function xtermTheme(dark: boolean): ITheme;
 //# sourceMappingURL=theme.d.ts.map

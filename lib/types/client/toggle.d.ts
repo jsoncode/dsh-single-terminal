@@ -1,9 +1,9 @@
 /**
  * dsh-single-terminal —— 会话头部开关按钮（conversation.session.header.utilities 插槽）。
  *
- * 图标为 panel-bottom（面板底部条填充）样式，几何取自宿主 IconPanelLeftOutline16
- * 旋转 -90°，风格与宿主图标一致；hover 气泡用宿主 Tooltip（label 传 thunk，
- * 气泡显示时求值，语言切换即生效）。
+ * 图标为 panel-bottom（面板底部条填充）样式：横长矩形（16×12，高 < 宽）、
+ * 直角无圆角，与宿主图标同风格（currentColor 填充）；hover 气泡用宿主
+ * Tooltip（label 传 thunk，气泡显示时求值，语言切换即生效）。
  *
  * 会话作用域标准 props 带 sessionId 与全局 useWorkspaces：据此解析当前会话
  * 归属的工作区根目录并同步给 controller，让新建终端自动落在工作区路径。
