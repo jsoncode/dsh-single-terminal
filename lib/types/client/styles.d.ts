@@ -7,6 +7,7 @@
  * alpha canvas，WebGL 已移除）。开合动画走 transform 滑出 +
  * visibility（布局常驻，xterm 不因开合重排），曲线用宿主
  * --ds-ease-in-out / --ds-transition-duration-slow，并尊重系统减动效设置。
+ * 终端入口按钮为吸附抽屉右上角的把手（.dst-entry），随抽屉滑动。
  */
 export declare function injectStyles(): void;
 //# sourceMappingURL=styles.d.ts.map

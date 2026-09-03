@@ -43,18 +43,25 @@ see [preview.md](preview.md).
 
 ## Features
 
-- **Header entry** (`conversation.session.header.utilities`): a panel-bottom
-  icon button in the session header's utilities row toggles
-  the drawer. Hovering shows a bubble tooltip (the host `Tooltip` component)
-  with the shortcut; `Alt+C` toggles from anywhere except while typing inside
-  the terminal (there `Alt+C` is passed to the shell as `ESC c`).
+- **Drawer-handle entry** (rendered inside the drawer in `shell.overlay`): a
+  `>_` prompt tab stuck to the drawer's top-right outer edge — the terminal's
+  entry button. It rides the drawer's own slide animation: expanded it sticks
+  to the terminal's top-right corner like a drawer handle; minimized it settles
+  at the page's bottom-right corner. Clicking toggles the drawer; `Alt+C`
+  toggles from anywhere except while typing inside the terminal (there `Alt+C`
+  is passed to the shell as `ESC c`).
+- **Invisible session bridge** (`conversation.session.header.utilities`): a
+  `null`-rendering component that only syncs the current session's workspace
+  root into the controller (so new terminals start there); the header shows no
+  visible UI for this plugin.
 - **Drawer** (`shell.overlay`): a frame-level bottom drawer with
   - a tab strip — one PTY session per tab, independent shells, close button
     per tab (terminates the whole process tree; the pid is verified gone),
-  - a `＋` button (new tab with the default shell) and a `▸` menu
-    (all shells found on this machine; unavailable ones are not listed),
+  - one `＋` button whose dropdown lists all shells found on this machine
+    (unavailable ones are not listed), the default shell pinned first and
+    marked,
   - a mode switch (*Docked* / *Overlay*), a connection status dot and a
-    collapse button,
+    minimize (`−`) button,
   - a drag handle on the top edge (pointer-capture drag, min 140px).
 - **Docked mode** pushes the app frame up with `padding-bottom` on the frame
   root element (no host hook exists for bottom docks); when the anchor cannot
@@ -83,7 +90,8 @@ profile `cordis.patch.yml`:
             args: []
 ```
 
-- `defaultShell` — shell used by the `＋` button; when unavailable it falls
+- `defaultShell` — shell preselected in the `＋` dropdown (pinned first and
+  marked "Default"); when unavailable it falls
   back (`powershell` on Windows, `$SHELL`/`bash` on POSIX).
 - `defaultCwd` — start directory when there is no workspace context: `home`
   (default) starts in the user home; `workspace` is reserved (currently
@@ -157,7 +165,7 @@ pnpm run verify        # simulate the host seed table to check lib/client.js loa
 ```
 ├── src/                # Source
 │   ├── host/           # Host half: index.ts (entry, ws route + config), hub.ts (session hub + frame protocol), shells.ts (registry + probing), types.ts
-│   └── client/         # Browser half: plugin.tsx (slots), drawer.tsx, term.tsx, controller.ts, ws.ts, styles.ts, theme.ts, toggle.tsx, i18n.ts ...
+│   └── client/         # Browser half: plugin.tsx (slots), drawer.tsx (drawer + entry handle), term.tsx, controller.ts, ws.ts, styles.ts, theme.ts, scope.tsx (session bridge), i18n.ts ...
 ├── lib/                # Build artifacts (committed: git installs need no build)
 │   ├── index.js        # Host half (tsdown, ESM)
 │   ├── client.js       # Browser half (tsdown → __ModuleLoader__ factory, xterm inlined)
@@ -211,4 +219,5 @@ pnpm run verify        # simulate the host seed table to check lib/client.js loa
   a translucent terminal background under the frosted blur in every mode —
   the WebGL addon was removed rather than swapped at runtime.
 - **The official `deepseek-harness` project is not modified**; all UI sits in
-  existing slots (`shell.overlay`, `conversation.session.header.utilities`).
+  existing slots (`shell.overlay` for the drawer and its entry handle,
+  `conversation.session.header.utilities` for the invisible session bridge).
