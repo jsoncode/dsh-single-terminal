@@ -9,9 +9,15 @@ Web 应用底部挂一条交互式 PTY 终端（xterm.js）——可以正常敲
 - **Shell 选择** —— Windows：PowerShell（默认）/ pwsh 7 / CMD / Git Bash / WSL
   （未安装的自动隐藏）+ config 自定义 shell；POSIX：`$SHELL` / bash / zsh / fish
 - **两种抽屉模式** —— *占高度* 把页面内容顶起（无遮挡），*浮层* 悬浮于内容之上；
-  顶边可拖拽调高度，模式与高度自动记忆
+  顶边可拖拽调高度，模式与高度自动记忆。浮层为磨砂玻璃层（半透明背景 +
+  `backdrop-filter` 高斯模糊），占高度为不透明。开合带滑入滑出动画
+  （沿用宿主缓动曲线，尊重系统减动效设置）。
+- **主题跟随** —— 抽屉与终端配色实时跟随宿主主题（浅色 / 深色 / 自定义主题），
+  无需单独配置。
 - **会话保活** —— 终端在页面刷新、抽屉开合后继续存活；重连后从环形缓冲回放
   近期输出。打开抽屉时若还没有任何终端，会自动用默认 shell 新建一个。
+- **工作区路径感知** —— 当前会话归属某个工作区时，新建终端（含自动新建）直接
+  落在该工作区根目录，无需手动 `cd`；无会话 / 无工作区时回退 `defaultCwd` 规则。
 - **双语 UI** —— 跟随宿主界面语言（中文 / English）；`Alt+C` 开关抽屉
 
 [English](README.md)
@@ -58,8 +64,9 @@ Schemastery `Config`（宿主 Plugins 设置页自动渲染），和 / 或 profi
 
 - `defaultShell` —— `＋` 按钮使用的 shell；不可用时自动回退（Windows 回退
   `powershell`，POSIX 回退 `$SHELL`/`bash`）。
-- `defaultCwd` —— `home`（默认）从用户主目录启动；`workspace` 预留（当前等同
-  home）；绝对路径必须存在。
+- `defaultCwd` —— 无工作区上下文时的启动目录：`home`（默认）从用户主目录启动；
+  `workspace` 预留（当前等同 home）；绝对路径必须存在。当前会话归属工作区时
+  优先使用工作区根目录（见上）。
 - `customShells` —— 额外启动器；`command` 可为绝对路径或从 `PATH` 解析的名称
   （Windows 上叠加 `PATHEXT`）。
 
@@ -125,5 +132,15 @@ pnpm run verify        # 模拟宿主 seed 表检查 lib/client.js 可加载
 - **Windows 进程树**：关闭标签执行 `pty.kill()` 后追加 `taskkill /T /F` ——
   仅关 ConPTY 时 PowerShell（+PSReadLine）可能存活；POSIX 杀前台进程组
   （`kill(-pid)`）。
+- **主题跟随**：插件 CSS 全部消费宿主语义 alias token（`--dsw-alias-*`，定义在
+  `body` 上，随 `body[data-ds-dark-theme]` 翻转），浅色 / 深色 / 自定义主题
+  无需插件侧逻辑即可生效。xterm 调色板在运行时现算：经隐藏探针元素读取
+  alias token 的 computed 值，按浮层 alpha 重组背景色，并用 `MutationObserver`
+  监听 body 属性重新套用——主题切换（含宿主 ThemePresenter 投影的自定义主题）
+  实时生效。
+- **渲染器策略**：xterm 5 默认仅有 DOM 渲染器（`allowTransparency` 在此有效，
+  WebGL canvas 不支持 alpha），因此浮层模式保持 DOM 渲染器 + 半透明终端背景
+  置于磨砂模糊之上，占高度模式加载 WebGL 插件做 GPU 渲染；模式切换在运行时
+  换入 / 换出渲染器。
 - **不修改官方 `deepseek-harness` 项目**；全部 UI 落在既有插槽
   （`shell.overlay`、`conversation.session.header.utilities`）。

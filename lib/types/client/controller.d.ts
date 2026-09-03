@@ -62,6 +62,9 @@ declare class TerminalController {
     private readonly sinks;
     private readonly pending;
     private noticeTimer;
+    /** 当前会话归属工作区的根目录（toggle 组件同步；null = 无工作区，用宿主默认）。 */
+    private workspaceCwd;
+    setWorkspaceCwd(cwd: string | null): void;
     toggle(): void;
     setOpen(open: boolean): void;
     ensureStarted(): void;

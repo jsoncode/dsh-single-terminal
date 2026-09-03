@@ -141,6 +141,12 @@ class TerminalController {
   private readonly sinks = new Map<string, TerminalSink>()
   private readonly pending = new Map<string, string>()
   private noticeTimer: ReturnType<typeof setTimeout> | null = null
+  /** 当前会话归属工作区的根目录（toggle 组件同步；null = 无工作区，用宿主默认）。 */
+  private workspaceCwd: string | null = null
+
+  setWorkspaceCwd(cwd: string | null): void {
+    this.workspaceCwd = cwd
+  }
 
   toggle(): void {
     this.setOpen(!this.store.getSnapshot().open)
@@ -183,7 +189,10 @@ class TerminalController {
 
   newTerminal(shellId: string): void {
     this.ensureStarted()
-    this.socket?.send({ type: 'open', shellId, cols: 80, rows: 24 })
+    const cwd = this.workspaceCwd
+    this.socket?.send(cwd !== null
+      ? { type: 'open', shellId, cols: 80, rows: 24, cwd }
+      : { type: 'open', shellId, cols: 80, rows: 24 })
   }
 
   closeTab(id: string): void {

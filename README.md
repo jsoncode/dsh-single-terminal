@@ -13,11 +13,19 @@ as you need.
   from config; POSIX: `$SHELL` / bash / zsh / fish
 - **Two drawer modes** — *Docked* pushes the page content up (no occlusion),
   *Overlay* floats above it; drag the top edge to resize, the drawer remembers
-  mode and height
+  mode and height. Overlay is a frosted-glass layer (translucent background +
+  `backdrop-filter` blur); Docked is opaque. Open/close slides with the host's
+  easing curve and honors `prefers-reduced-motion`.
+- **Theme following** — the drawer and the terminal palette follow the host's
+  theme (light / dark / custom themes) live; no separate theme config.
 - **Keep-alive sessions** — terminals survive page refreshes and drawer
   close/reopen; on reconnect the recent output is replayed from a ring buffer.
   Opening the drawer with no terminal yet auto-creates one with the default
   shell.
+- **Workspace-aware cwd** — when the current session belongs to a workspace,
+  new terminals (including the auto-created one) start in that workspace root
+  directory, no manual `cd` needed; with no session / no workspace the
+  `defaultCwd` rules apply.
 - **Bilingual UI** — follows the host interface language (中文 / English);
   `Alt+C` toggles the drawer
 
@@ -67,8 +75,10 @@ profile `cordis.patch.yml`:
 
 - `defaultShell` — shell used by the `＋` button; when unavailable it falls
   back (`powershell` on Windows, `$SHELL`/`bash` on POSIX).
-- `defaultCwd` — `home` (default) starts in the user home; `workspace` is
-  reserved (currently resolves to home); an absolute path must exist.
+- `defaultCwd` — start directory when there is no workspace context: `home`
+  (default) starts in the user home; `workspace` is reserved (currently
+  resolves to home); an absolute path must exist. When the current session
+  belongs to a workspace the workspace root takes precedence (see above).
 - `customShells` — extra launchers; `command` may be an absolute path or a
   name resolved through `PATH` (with `PATHEXT` on Windows).
 
@@ -140,5 +150,18 @@ pnpm run verify        # simulate the host seed table to check lib/client.js loa
   `taskkill /T /F` on the session pid — ConPTY closure alone can leave
   PowerShell (+PSReadLine) alive; POSIX kills the foreground process group
   (`kill(-pid)`).
+- **Theme following**: all plugin CSS consumes the host's semantic alias
+  tokens (`--dsw-alias-*`, defined on `body` and flipped by
+  `body[data-ds-dark-theme]`), so light / dark / custom themes apply without
+  plugin-side logic. The xterm palette is computed at runtime: alias token
+  values are read via a hidden probe element (`getComputedStyle`), the
+  background is re-composed with the overlay alpha, and a `MutationObserver`
+  on the body attribute re-applies the palette — theme switches (including
+  custom themes projected by the host's ThemePresenter) update live.
+- **Renderer strategy**: xterm 5 ships DOM renderer only by default
+  (`allowTransparency` works there, and WebGL canvases are opaque), so Overlay
+  mode stays on the DOM renderer with a translucent terminal background under
+  the frosted blur, while Docked mode loads the WebGL addon for GPU rendering;
+  switching modes swaps the renderer at runtime.
 - **The official `deepseek-harness` project is not modified**; all UI sits in
   existing slots (`shell.overlay`, `conversation.session.header.utilities`).
