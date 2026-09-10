@@ -1,7 +1,7 @@
 /**
  * dsh-single-terminal —— 底部抽屉（shell.overlay 插槽）。
  *
- * - 两种模式：docked（占高度：对 AppFrame 根元素设 inline padding-bottom，把
+ * - 两种模式：docked（置低：对 AppFrame 根元素设 inline padding-bottom，把
  *   主内容顶起；找不到 [data-shell-overlay] 锚点时静默降级为浮层）/ overlay（浮层）。
  *   模式只决定停靠行为，样式两种模式统一（磨砂半透明，见 styles.ts）；
  * - 顶部拖拽条调高度（pointer capture + 帧节流），localStorage 持久化 mode/height；
@@ -12,7 +12,7 @@
  *   右下角（把手覆写 visibility，收起后仍可见可点）。
  */
 
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { terminal, useDrawerState } from './controller.ts'
 import { t } from './i18n.ts'
 import { TerminalView } from './term.tsx'
@@ -39,13 +39,11 @@ function findFrameElement(): HTMLElement | null {
 
 export function TerminalDrawer() {
   const state = useDrawerState()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement | null>(null)
 
   // 首次挂载即建立 WS 连接（空闲连接开销极小；页面刷新后由 list 帧恢复标签）。
   useEffect(() => { terminal.ensureStarted() }, [])
 
-  // 占高度模式：把 AppFrame 根元素顶起（border-box + padding-bottom）。
+  // 置低模式：把 AppFrame 根元素顶起（border-box + padding-bottom）。
   useEffect(() => {
     if (!state.open || state.mode !== 'docked') return
     const frame = findFrameElement()
@@ -58,29 +56,9 @@ export function TerminalDrawer() {
     }
   }, [state.open, state.mode, state.height])
 
-  // 菜单外点 / Esc 关闭。
-  useEffect(() => {
-    if (!menuOpen) return
-    const onPointerDown = (event: PointerEvent) => {
-      if (menuRef.current !== null && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenuOpen(false)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [menuOpen])
-
-  const availableShells = state.shells.filter((shell) => shell.available)
-  // 默认 shell 置顶（稳定排序，其余保持注册表顺序），菜单里加「默认」标记。
-  const menuShells = [...availableShells].sort((a, b) =>
-    (a.id === state.defaultShell ? -1 : 0) - (b.id === state.defaultShell ? -1 : 0))
+  // 新建终端只用第一个可用 shell（Windows 注册表首位是 powershell）；清单未就绪时
+  // 回退宿主默认 shell，点击 ＋ 立即创建，不做类型选择。
+  const firstShellId = state.shells.find((shell) => shell.available)?.id ?? state.defaultShell
 
   const startDrag = (event: ReactPointerEvent<HTMLDivElement>): void => {
     event.preventDefault()
@@ -148,7 +126,6 @@ export function TerminalDrawer() {
             </button>
           ))}
         </div>
-        <span className={`dst-conn ${state.conn}`} title={t(`terminal.status.${state.conn}`)} />
         <div className="dst-actions">
           <button
             className="dst-modebtn"
@@ -157,49 +134,14 @@ export function TerminalDrawer() {
           >
             {state.mode === 'docked' ? `⬓ ${t('terminal.mode.dock')}` : `◫ ${t('terminal.mode.overlay')}`}
           </button>
-          {/* 新建终端（单一入口）：＋ 图标 + 下拉菜单选 shell；默认 shell 置顶。 */}
-          <div style={{ position: 'relative' }} ref={menuRef}>
-            <button
-              className="dst-iconbtn"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              onClick={() => { setMenuOpen((open) => !open) }}
-              title={t('terminal.new')}
-            >
-              ＋
-            </button>
-            {menuOpen && (
-              <div className="dst-menu" role="menu">
-                {menuShells.length === 0 && (
-                  <div className="dst-menuitem" style={{ cursor: 'default', opacity: 0.6 }}>—</div>
-                )}
-                {menuShells.map((shell) => (
-                  <button
-                    key={shell.id}
-                    type="button"
-                    role="menuitem"
-                    className="dst-menuitem"
-                    onClick={() => {
-                      setMenuOpen(false)
-                      terminal.newTerminal(shell.id)
-                    }}
-                  >
-                    {shell.name}
-                    {shell.id === state.defaultShell && (
-                      <span className="dst-menudfl">{t('terminal.defaultShell')}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* 新建终端：＋ 立即用第一个可用 shell 创建，不弹类型选择。 */}
           <button
             className="dst-iconbtn"
-            onClick={() => { terminal.setOpen(false) }}
-            title={t('terminal.minimize')}
-            aria-label={t('terminal.minimize')}
+            onClick={() => { terminal.newTerminal(firstShellId) }}
+            title={t('terminal.new')}
+            aria-label={t('terminal.new')}
           >
-            −
+            ＋
           </button>
         </div>
       </div>
