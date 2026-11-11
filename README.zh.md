@@ -10,9 +10,9 @@ Web 应用底部挂一条交互式 PTY 终端（xterm.js）——可以正常敲
 
 - **真 PTY，非模拟** —— 每个标签是一条真实伪终端（Windows 为 ConPTY，POSIX 为
   forkpty），由 `node-pty` 驱动；交互式 REPL、全屏程序、Ctrl-C 与原生终端一致
-- **Shell 选择** —— Windows：PowerShell（默认）/ pwsh 7 / CMD / Git Bash / WSL
-  （未安装的自动隐藏）+ config 自定义 shell；POSIX：`$SHELL` / bash / zsh / fish
-- **两种抽屉模式** —— *占高度* 把页面内容顶起（无遮挡），*浮层* 悬浮于内容之上；
+- **Shell 探测** —— Windows：PowerShell（默认）/ pwsh 7 / CMD / Git Bash / WSL
+  （未安装的自动跳过）+ config 自定义 shell；POSIX：`$SHELL` / bash / zsh / fish
+- **两种抽屉模式** —— *置低* 把页面内容顶起（无遮挡），*浮层* 悬浮于内容之上；
   顶边可拖拽调高度，模式与高度自动记忆。两种模式共用同一磨砂玻璃样式
   （半透明背景 + `backdrop-filter` 高斯模糊）——模式只决定停靠行为。开合带
   滑入滑出动画（沿用宿主缓动曲线，尊重系统减动效设置）。
@@ -32,22 +32,26 @@ Web 应用底部挂一条交互式 PTY 终端（xterm.js）——可以正常敲
 
 ## 功能
 
-- **抽屉把手入口**（渲染在 `shell.overlay` 的抽屉内部）：`>_` 提示符小标签
-  吸附在抽屉右上角外沿——即终端入口按钮。它随抽屉自身的滑动动画移动：
-  展开时像抽屉把手一样吸附在终端右上角；最小化后落在页面右下角。点击开合
-  抽屉；`Alt+C` 全局开合，焦点在终端输入区内时放行（`Alt+C` 作为 `ESC c`
-  发给 shell）。
+- **全局入口 = 设置 ▸ 终端**（`settings.section`，id `dsh-single-terminal`，
+  order 120，label 用 i18n thunk，配套同 id 的 `settings.section.icon`）：
+  入口页在设置弹框左侧导航，承载「打开终端抽屉」主按钮（点击后关闭设置面板、
+  唤起抽屉）与停靠/浮层模式切换。页面角落不再注册任何全局入口。
+- **抽屉把手**（渲染在 `shell.overlay` 的抽屉内部，属抽屉自身 chrome 而非
+  全局入口）：`>_` 提示符小标签吸附在抽屉右上角外沿。它随抽屉自身的滑动
+  动画移动：展开时像抽屉把手一样吸附在终端右上角；最小化后落在页面右下角。
+  点击开合抽屉；`Alt+C` 全局开合，焦点在终端输入区内时放行（`Alt+C` 作为
+  `ESC c` 发给 shell）。
 - **隐形会话桥**（`conversation.session.header.utilities`）：渲染 null 的
   组件，只负责把当前会话的工作区根目录同步给 controller（新建终端落在该
   目录）；会话头部不显示本插件任何可见 UI。
 - **抽屉**（`shell.overlay`）：frame 级底部抽屉，包含
-  - 标签条 —— 每标签一条独立 PTY 会话，可独立选择 shell；每标签有关闭按钮
+  - 标签条 —— 每标签一条独立 PTY 会话；每标签有关闭按钮
     （终止整棵进程树，已实测 pid 消失）；
-  - 单一 `＋` 按钮 —— 下拉列出本机探测到的全部 shell（不可用的不显示），
-    默认 shell 置顶并标记；
-  - 模式切换（占高度 / 浮层）、连接状态点、最小化（`−`）按钮；
+  - 单一 `＋` 按钮 —— 用第一个可用 shell 立即新建（清单未就绪时回退
+    `defaultShell`），不做类型选择；
+  - 模式切换（置低 / 浮层）—— 收起抽屉用把手（`Alt+C` 亦可）；
   - 顶边拖拽条（pointer capture 拖拽，最小 140px）。
-- **占高度模式** 通过对框架根元素设 `padding-bottom` 把内容顶起（宿主没有底部
+- **置低模式** 通过对框架根元素设 `padding-bottom` 把内容顶起（宿主没有底部
   停靠钩子）；找不到锚点元素时静默降级为浮层。
 - **模型工具**：无——本插件刻意只做 UI。
 
@@ -73,8 +77,9 @@ Schemastery `Config`（宿主 Plugins 设置页自动渲染），和 / 或 profi
             args: []
 ```
 
-- `defaultShell` —— `＋` 下拉菜单中预选的 shell（置顶并标记「默认」）；不可用
-  时自动回退（Windows 回退 `powershell`，POSIX 回退 `$SHELL`/`bash`）。
+- `defaultShell` —— 抽屉清单未就绪时 `＋` 新建的兜底 shell，以及打开抽屉无终端
+  时自动新建所用的 shell；不可用时自动回退（Windows 回退 `powershell`，POSIX
+  回退 `$SHELL`/`bash`）。`＋` 不再弹类型下拉，直接用第一个可用 shell。
 - `defaultCwd` —— 无工作区上下文时的启动目录：`home`（默认）从用户主目录启动；
   `workspace` 预留（当前等同 home）；绝对路径必须存在。当前会话归属工作区时
   优先使用工作区根目录（见上）。
@@ -140,7 +145,7 @@ pnpm run verify        # 模拟宿主 seed 表检查 lib/client.js 可加载
 ```
 ├── src/                # 源码
 │   ├── host/           # 宿主半边：index.ts（入口，ws 路由 + 配置）、hub.ts（会话 Hub + 帧协议）、shells.ts（注册表 + 探测）、types.ts
-│   └── client/         # 浏览器半边：plugin.tsx（slots）、drawer.tsx（抽屉 + 入口把手）、term.tsx、controller.ts、ws.ts、styles.ts、theme.ts、scope.tsx（会话桥）、i18n.ts ...
+│   └── client/         # 浏览器半边：plugin.tsx（slots）、settings.tsx（设置分区页 + 图标）、drawer.tsx（抽屉 + 把手 chrome）、term.tsx、controller.ts、ws.ts、styles.ts、theme.ts、scope.tsx（会话桥）、icons.tsx、i18n.ts ...
 ├── lib/                # 构建产物（入库：git 安装无需本地构建）
 │   ├── index.js        # 宿主半边（tsdown，ESM）
 │   ├── client.js       # 浏览器半边（tsdown → __ModuleLoader__ 工厂，xterm 已内联）
@@ -186,5 +191,6 @@ pnpm run verify        # 模拟宿主 seed 表检查 lib/client.js 可加载
   WebGL canvas 不支持 alpha）。两种模式共用磨砂样式，因此统一保持 DOM 渲染器 +
   半透明终端背景置于磨砂模糊之上——不做运行时渲染器切换，WebGL 插件已移除。
 - **不修改官方 `deepseek-harness` 项目**；全部 UI 落在既有插槽
-  （抽屉与其入口把手在 `shell.overlay`，隐形会话桥在
+  （全局入口页在 `settings.section` + `settings.section.icon`，抽屉与其
+  把手 chrome 在 `shell.overlay`，隐形会话桥在
   `conversation.session.header.utilities`）。

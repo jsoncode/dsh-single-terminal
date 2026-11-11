@@ -29,18 +29,12 @@ const window = {
   },
 }
 
-// 宿主 seed 表（frozen module table）：外部依赖只能解析这里
+// 宿主 seed 表（frozen module table）：外部依赖只能解析这里。
+// 与 tsdown.config.ts 的 SEED_MODULES 保持一致：bundle 实际只 require
+// react / react/jsx-runtime，出现表外 require 即判定 external 漂移。
 const seed = {
   'react': require('react'),
   'react/jsx-runtime': require('react/jsx-runtime'),
-  'react-dom': require('react-dom'),
-  'react-dom/client': require('react-dom/client'),
-  '@deepseek-ai/cordis': {},
-  '@deepseek-ai/dsh-client-ui-slots': {},
-  '@deepseek-ai/dsh-client-web-react': {},
-  '@deepseek-ai/dsh-client-ui-primitives': {},
-  '@deepseek-ai/dsh-client-ui-attachment': {},
-  '@deepseek-ai/dsh-client-schema-form': {},
 }
 
 const sandbox = {

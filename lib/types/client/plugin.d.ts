@@ -1,8 +1,12 @@
 /**
  * dsh-single-terminal —— 浏览器半边插件主体（slots 注册）。
  *
- * - shell.overlay：底部终端抽屉（抽屉右上角外沿吸附终端入口把手，收起后
- *   把手落在页面右下角）；
+ * - settings.section（id 同包名，order 120，label 用 i18n thunk）：设置弹框
+ *   左侧菜单的全局入口页（主按钮打开抽屉 + 入口/设置类内容），配
+ *   settings.section.icon（同 id 的导航图标）——按产品要求入口只放这里，
+ *   不再注册页面角落/左下角的全局入口；
+ * - shell.overlay：底部终端抽屉本体（把手/最小化等抽屉自身 chrome 保留，
+ *   随抽屉吸附其右上角外沿）；
  * - conversation.session.header.utilities：不可见的会话作用域桥（渲染 null，
  *   只同步当前会话的工作区 cwd，头部无可见 UI）；
  * - Alt+C 快捷键开关抽屉（ctx.effect 挂窗级监听，卸载自动清理；焦点在终端

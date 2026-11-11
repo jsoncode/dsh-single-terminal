@@ -43,13 +43,19 @@ see [preview.md](preview.md).
 
 ## Features
 
-- **Drawer-handle entry** (rendered inside the drawer in `shell.overlay`): a
-  `>_` prompt tab stuck to the drawer's top-right outer edge — the terminal's
-  entry button. It rides the drawer's own slide animation: expanded it sticks
-  to the terminal's top-right corner like a drawer handle; minimized it settles
-  at the page's bottom-right corner. Clicking toggles the drawer; `Alt+C`
-  toggles from anywhere except while typing inside the terminal (there `Alt+C`
-  is passed to the shell as `ESC c`).
+- **Global entry — Settings ▸ Terminal** (`settings.section`, id
+  `dsh-single-terminal`, order 120, i18n label thunk, plus a matching
+  `settings.section.icon`): the entry page lives in the settings dialog's left
+  navigation and hosts the primary "Open terminal drawer" button (closes the
+  dialog and raises the drawer) and the docked / overlay mode switch. No
+  global entry is registered in any page corner.
+- **Drawer handle** (rendered inside the drawer in `shell.overlay`, drawer
+  chrome rather than a global entry): a `>_` prompt tab stuck to the drawer's
+  top-right outer edge. It rides the drawer's own slide animation: expanded it
+  sticks to the terminal's top-right corner like a drawer handle; minimized it
+  settles at the page's bottom-right corner. Clicking toggles the drawer;
+  `Alt+C` toggles from anywhere except while typing inside the terminal (there
+  `Alt+C` is passed to the shell as `ESC c`).
 - **Invisible session bridge** (`conversation.session.header.utilities`): a
   `null`-rendering component that only syncs the current session's workspace
   root into the controller (so new terminals start there); the header shows no
@@ -57,11 +63,11 @@ see [preview.md](preview.md).
 - **Drawer** (`shell.overlay`): a frame-level bottom drawer with
   - a tab strip — one PTY session per tab, independent shells, close button
     per tab (terminates the whole process tree; the pid is verified gone),
-  - one `＋` button whose dropdown lists all shells found on this machine
-    (unavailable ones are not listed), the default shell pinned first and
-    marked,
-  - a mode switch (*Docked* / *Overlay*), a connection status dot and a
-    minimize (`−`) button,
+  - one `＋` button — creates a terminal immediately with the first available
+    shell (falls back to the configured `defaultShell` before the inventory
+    arrives), no type picker,
+  - a mode switch (*Docked* / *Overlay*) — closing the drawer is the handle
+    itself (`Alt+C` also toggles),
   - a drag handle on the top edge (pointer-capture drag, min 140px).
 - **Docked mode** pushes the app frame up with `padding-bottom` on the frame
   root element (no host hook exists for bottom docks); when the anchor cannot
@@ -90,8 +96,9 @@ profile `cordis.patch.yml`:
             args: []
 ```
 
-- `defaultShell` — shell preselected in the `＋` dropdown (pinned first and
-  marked "Default"); when unavailable it falls
+- `defaultShell` — the plugin default shell: the `＋` button uses the first
+  available shell once the host inventory arrives and falls back to this id
+  before that; it is never exposed as a picker. When unavailable it falls
   back (`powershell` on Windows, `$SHELL`/`bash` on POSIX).
 - `defaultCwd` — start directory when there is no workspace context: `home`
   (default) starts in the user home; `workspace` is reserved (currently
@@ -165,7 +172,7 @@ pnpm run verify        # simulate the host seed table to check lib/client.js loa
 ```
 ├── src/                # Source
 │   ├── host/           # Host half: index.ts (entry, ws route + config), hub.ts (session hub + frame protocol), shells.ts (registry + probing), types.ts
-│   └── client/         # Browser half: plugin.tsx (slots), drawer.tsx (drawer + entry handle), term.tsx, controller.ts, ws.ts, styles.ts, theme.ts, scope.tsx (session bridge), i18n.ts ...
+│   └── client/         # Browser half: plugin.tsx (slots), settings.tsx (settings.section page + icon), drawer.tsx (drawer + handle chrome), term.tsx, controller.ts, ws.ts, styles.ts, theme.ts, scope.tsx (session bridge), icons.tsx, i18n.ts ...
 ├── lib/                # Build artifacts (committed: git installs need no build)
 │   ├── index.js        # Host half (tsdown, ESM)
 │   ├── client.js       # Browser half (tsdown → __ModuleLoader__ factory, xterm inlined)
@@ -219,5 +226,6 @@ pnpm run verify        # simulate the host seed table to check lib/client.js loa
   a translucent terminal background under the frosted blur in every mode —
   the WebGL addon was removed rather than swapped at runtime.
 - **The official `deepseek-harness` project is not modified**; all UI sits in
-  existing slots (`shell.overlay` for the drawer and its entry handle,
+  existing slots (`settings.section` + `settings.section.icon` for the global
+  entry page, `shell.overlay` for the drawer and its handle chrome,
   `conversation.session.header.utilities` for the invisible session bridge).
